@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Product>ARC Fingerprint</Product>
+    <Description>Local EPUB ARC fingerprinting and private recipient lookup.</Description>
+  </PropertyGroup>
+</Project>
+
