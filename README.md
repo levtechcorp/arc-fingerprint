@@ -1,12 +1,12 @@
 # ARC Fingerprint 1.0.0
 
-For everyday use, start with [START-HERE.md](START-HERE.md). The finished app is in **Ready-to-run**; Visual Studio is only needed to edit or rebuild it.
+For everyday use, download the current Windows ZIP from the repository's **Releases** page. For source builds, start with [START-HERE.md](START-HERE.md); Visual Studio is only needed to edit or rebuild the app.
 
 A small, local Windows desktop app for making individually fingerprinted EPUB advance reader copies. The source is a Visual Studio solution using C# / .NET 8 Windows Forms. There are no third-party package dependencies, accounts, subscriptions, network calls, or email sending in the app.
 
 ## Start the app
 
-Open `Ready-to-run/ArcFingerprint.exe`. Keep the other files in that folder beside it. This build requires the .NET 8 Desktop Runtime, which was already installed on the computer where this app was built.
+From a Windows release ZIP, open `Ready-to-run/ArcFingerprint.exe` and keep the other files in that folder beside it. This build requires the .NET 8 Desktop Runtime.
 
 1. Choose an **unmarked master EPUB**. The app checks its structure before accepting it.
 2. Choose a folder for your batches. A new uniquely named subfolder is created for every run.
