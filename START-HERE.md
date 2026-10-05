@@ -1,4 +1,4 @@
-# ARC Fingerprint 1.1.0
+# ARC Fingerprint 1.1.1
 
 ## Open the app
 
