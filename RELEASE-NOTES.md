@@ -1,12 +1,16 @@
-# ARC Fingerprint 1.0.0
+# ARC Fingerprint 1.1.0
 
-Final local Windows release — October 1, 2026.
+Feature update in review.
 
 ## Included
 
 - Windows desktop interface with CSV import and editable reader list.
+- ARC, Beta, and Alpha copy-stage selection with a live filename preview.
+- Email-friendly EPUB filenames with sanitized book and recipient names; no email addresses in filenames.
+- Refreshed desktop layout, typography, and recipient table styling.
 - Random per-copy IDs in EPUB metadata and hidden XHTML comments.
 - Private recipient mappings with file hashes and batch reports.
+- Copy stage recorded in each mapping and validation report.
 - Recipient lookup by full ID, automatic nearby-mapping detection, and manual mapping selection.
 - File-hash comparison, including identification of renamed copies.
 - EPUB 2/3 structural safeguards, protected master files, and batch cancellation/cleanup.
@@ -26,4 +30,3 @@ Full EPUBCheck and ebook-reader visual validation were not performed. The struct
 ## Updating from the development build
 
 Close the old ARC Fingerprint window before opening the final executable. Existing generated EPUBs and mapping CSVs remain compatible. Visual Studio users can reopen the solution or rebuild it; select **ArcFingerprint.App** as the startup project.
-

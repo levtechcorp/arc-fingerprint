@@ -1,4 +1,4 @@
-# ARC Fingerprint 1.0.0
+# ARC Fingerprint 1.1.0
 
 For everyday use, download the current Windows ZIP from the repository's **Releases** page. For source builds, start with [START-HERE.md](START-HERE.md); Visual Studio is only needed to edit or rebuild the app.
 
@@ -11,7 +11,7 @@ From a Windows release ZIP, open `Ready-to-run/ArcFingerprint.exe` and keep the 
 1. Choose an **unmarked master EPUB**. The app checks its structure before accepting it.
 2. Choose a folder for your batches. A new uniquely named subfolder is created for every run.
 3. Import a UTF-8 CSV with `Name,Email` headers, or type names and emails into the table. An example CSV is included. Import replaces the current list. Select a row and press Delete to remove a reader.
-4. Click **Generate ARC copies**. Every output is reopened and checked before the completed batch becomes available.
+4. Choose **ARC**, **Beta**, or **Alpha** under **Copy stage**, then click **Generate copies**. Every output is reopened and checked before the completed batch becomes available.
 5. Click **Open last batch**. Use `PRIVATE-recipient-mapping.csv` to match each reader to their file. Email only the appropriate EPUB, never the mapping or whole batch folder.
 
 The original master is opened read-only and never changed. Recipient names and emails are stored only in the private mapping, not embedded into the EPUB. Use a local, non-synced output folder if you also want to avoid your own cloud-sync software copying the files. The mapping is plain text, not encrypted; keep a backup somewhere private.
@@ -19,10 +19,10 @@ The original master is opened read-only and never changed. Recipient names and e
 ## What each batch contains
 
 - One EPUB per reader, with a random 128-bit `ARC-…` ID.
-- `PRIVATE-recipient-mapping.csv`: ID, reader name, email, filename, output SHA-256, master SHA-256, and UTC creation time. Potential spreadsheet formulas are prefixed with an apostrophe for safe opening in Excel.
+- `PRIVATE-recipient-mapping.csv`: ID, reader name, email, filename, copy stage, output SHA-256, master SHA-256, and UTC creation time. Potential spreadsheet formulas are prefixed with an apostrophe for safe opening in Excel.
 - `validation-report.json`: the master hash, counts, time, and description of the checks performed.
 
-Filenames use sequence numbers and part of the random ID. No names or email addresses appear in filenames. Each rerun creates new IDs and a new mapping; retain every mapping you need.
+Filenames include the book title, copy stage, recipient name, sequence number, and part of the random ID (for example `Island Fortune - Beta - Jane Reader - 001-A1B2C3D4.epub`). Names appear in filenames to make individual email attachments easy to identify; email addresses are never included. The private mapping also records the stage. Each rerun creates new IDs and a new mapping; retain every mapping you need.
 
 ## Fingerprints and limitations
 
@@ -69,6 +69,5 @@ dotnet publish ArcFingerprint.App -c Release --self-contained false -o Ready-to-
 ```
 
 The tests cover a 15-reader batch, unique IDs, unchanged source and content bytes, private mappings, duplicate recipients, EPUB 2/3, UTF-16, malformed XML, entity resolution, unsafe paths, cancellation cleanup, and rejected unsupported formats. Test fixtures go in a fresh temporary directory by default. The suite now has 38 passing tests, including IDPF/Adobe font preservation and rejection of actual or mixed encryption. The font-support fix was also checked on the supplied manuscript: 77 XHTML documents, all 12 obfuscated fonts preserved byte-for-byte, and the original master and identifiers unchanged. EPUBCheck was not run because Java and EPUBCheck were not available in this environment.
-
 
 
