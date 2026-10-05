@@ -1,6 +1,6 @@
 # ARC Fingerprint 1.1.0
 
-Feature update in review.
+Released October 4, 2026.
 
 ## Included
 
@@ -19,14 +19,9 @@ Feature update in review.
 
 ## Verification
 
-- 38 automated core tests pass, covering generation, mappings, font preservation, validation failures, and cancellation.
-- Recipient-result logic checked for displayed name, email, mapping source, and file-match status.
-- Main window launch and generation previously checked through the interface.
-- Supplied manuscript successfully processed: 77 XHTML documents; all 12 obfuscated fonts and the original publication identifiers preserved; master unchanged.
-- Release build targets .NET 8 Windows Forms without third-party package dependencies.
+- The source builds with .NET 8 Windows Forms without third-party package dependencies.
+- The 1.1.0 Windows x64 ZIP is portable and does not require Visual Studio. It requires the .NET 8 Desktop Runtime, which is not bundled.
+- 38 automated core tests from the 1.0.0 release cover generation, mappings, font preservation, validation failures, and cancellation.
+- EPUBCheck and ebook-reader visual validation were not performed for this release.
 
-Full EPUBCheck and ebook-reader visual validation were not performed. The structural checker is not a complete EPUB conformance checker. Fingerprints are removable. DRM, unsupported encryption, signed archives, and multiple-rendition EPUBs are unsupported.
-
-## Updating from the development build
-
-Close the old ARC Fingerprint window before opening the final executable. Existing generated EPUBs and mapping CSVs remain compatible. Visual Studio users can reopen the solution or rebuild it; select **ArcFingerprint.App** as the startup project.
+The structural checker is not a complete EPUB conformance checker. Fingerprints are removable. DRM, unsupported encryption, signed archives, and multiple-rendition EPUBs are unsupported. Existing generated EPUBs and mapping CSVs remain compatible.
