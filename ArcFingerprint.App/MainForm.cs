@@ -16,7 +16,7 @@ public sealed class MainForm : Form
         BackgroundColor = Color.White, BorderStyle = BorderStyle.FixedSingle,
         AccessibleName = "Recipients: name and email", MultiSelect = false
     };
-    private readonly Label status = new() { AutoSize = true, Text = "Choose a master EPUB and add your readers.", Dock = DockStyle.Fill };
+    private readonly Label status = new() { AutoSize = false, Text = "Choose a master EPUB and add your readers.", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, AutoEllipsis = true };
     private readonly ProgressBar progress = new() { Dock = DockStyle.Fill };
     private readonly Button generate = new() { Text = "Generate copies", AutoSize = true, BackColor = Color.FromArgb(30, 111, 126), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
     private readonly Button cancel = new() { Text = "Cancel", AutoSize = true, Enabled = false };
@@ -48,8 +48,8 @@ public sealed class MainForm : Form
         layout.RowStyles.Add(new(SizeType.Absolute, 30));
         layout.RowStyles.Add(new(SizeType.Absolute, 50));
         layout.RowStyles.Add(new(SizeType.Absolute, 24));
-        layout.RowStyles.Add(new(SizeType.Absolute, 8));
-        layout.RowStyles.Add(new(SizeType.Absolute, 8));
+        layout.RowStyles.Add(new(SizeType.Absolute, 30));
+        layout.RowStyles.Add(new(SizeType.Absolute, 24));
         Controls.Add(layout);
         var hero = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(24, 48, 64), Padding = new Padding(18, 8, 12, 4) };
         hero.Controls.Add(new Label { Text = "ARC FINGERPRINT", ForeColor = Color.White, Font = new Font("Segoe UI Semibold", 18), AutoSize = true, Location = new Point(16, 3) });
