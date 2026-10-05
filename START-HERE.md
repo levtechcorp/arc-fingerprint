@@ -1,4 +1,4 @@
-# ARC Fingerprint 1.0.0
+# ARC Fingerprint 1.1.0
 
 ## Open the app
 
@@ -6,12 +6,12 @@ If you downloaded the ZIP, extract the entire package first. Open **Ready-to-run
 
 This release uses the .NET 8 Desktop Runtime already installed on your computer.
 
-## Make your ARC copies
+## Make reader copies
 
 1. **Choose EPUB…** — select the original master book.
 2. **Choose folder…** — choose where to save the batch.
 3. Import your reader CSV (columns **Name** and **Email**) or enter readers in the table. The included example contains fictional readers; replace them before making real copies.
-4. **Generate ARC copies**, then **Open last batch**.
+4. Choose **ARC**, **Beta**, or **Alpha** under **Copy stage**. Check the filename preview, then click **Generate copies** and **Open last batch**.
 5. Use the private mapping to attach the correct EPUB to each reader's email. Keep the mapping private and backed up.
 
 ## Identify an existing copy
@@ -22,9 +22,8 @@ The result includes the reader's name and email, original filename, and whether 
 
 ## What to keep
 
-Keep the master EPUB and every batch's private mapping. Send only the assigned EPUB to each reader. The app never sends email and leaves the master untouched.
+Filenames include the book title, stage, and recipient name to make email attachments easy to match. Keep the master EPUB and every batch's private mapping. Send only the assigned EPUB to each reader. The app never sends email and leaves the master untouched.
 
 Fingerprint marks can be removed, especially during conversion. A lookup identifies an assigned copy, not proof of who shared it. The app performs structural checks; full EPUBCheck conformance validation is separate.
 
 For technical details and Visual Studio instructions, see **README.md**. Release verification is recorded in **RELEASE-NOTES.md**.
-
