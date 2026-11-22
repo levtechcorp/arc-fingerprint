@@ -54,4 +54,3 @@ public static class Recipients
 
     private static bool StartsWithAny(this string value, params char[] characters) => value.Length > 0 && characters.Contains(value[0]);
 }
-

@@ -2,3 +2,5 @@
 **/obj/
 .vs/
 TestResults/
+# Local package download cache used only when NuGet is unavailable.
+/local-packages/

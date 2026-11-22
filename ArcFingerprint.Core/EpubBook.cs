@@ -13,6 +13,7 @@ public sealed class EpubBook
     private static readonly XNamespace Container = "urn:oasis:names:tc:opendocument:xmlns:container";
     private static readonly XNamespace Html = "http://www.w3.org/1999/xhtml";
     internal const string Marker = "ARC-FINGERPRINT:";
+    private const string CssMarker = "ARC-FINGERPRINT-CSS:";
     private const long MaxTotal = 256L * 1024 * 1024;
     private readonly Dictionary<string, byte[]> files;
     private readonly string packagePath;
@@ -20,6 +21,7 @@ public sealed class EpubBook
     public string Title { get; }
     public string SourceHash { get; }
     public int DocumentCount => xhtmlPaths.Count;
+    public int StylesheetCount => files.Keys.Count(path => path.EndsWith(".css", StringComparison.OrdinalIgnoreCase));
     public int ObfuscatedFontCount { get; }
 
     private EpubBook(Dictionary<string, byte[]> entries, string opf, List<string> documents, string title, string hash, int obfuscatedFonts)
@@ -184,8 +186,10 @@ public sealed class EpubBook
         return seen.Count;
     }
 
-    internal void WriteCopy(string destination, string id)
+    internal void WriteCopy(string destination, string id, bool stylesheetFingerprint = false, bool thesaurusVariants = false, bool repeatXhtmlFingerprint = true)
     {
+        if (stylesheetFingerprint && StylesheetCount == 0) throw new InvalidDataException("This EPUB has no CSS stylesheet to fingerprint. Turn off the stylesheet option.");
+        int thesaurusReplacements = 0;
         var package = Xml(files[packagePath]);
         var metadata = package.Root!.Element(Opf + "metadata")!;
         // Preserve the publication identifier, including NCX references to it.
@@ -209,9 +213,33 @@ public sealed class EpubBook
                 using (var writer = XmlWriter.Create(buffer, new XmlWriterSettings { Encoding = new UTF8Encoding(false), Indent = false })) package.Save(writer);
                 content = buffer.ToArray();
             }
-            else if (xhtmlPaths.Contains(name)) content = AppendComment(original, id);
+            else if (xhtmlPaths.Contains(name))
+            {
+                if (thesaurusVariants)
+                {
+                    var variation = ThesaurusVariants.Apply(original, id);
+                    content = repeatXhtmlFingerprint ? AppendComment(variation.Content, id) : variation.Content;
+                    thesaurusReplacements += variation.Replacements;
+                }
+                else content = repeatXhtmlFingerprint ? AppendComment(original, id) : original;
+            }
+            else if (stylesheetFingerprint && name.EndsWith(".css", StringComparison.OrdinalIgnoreCase)) content = AppendCssFingerprint(original, id);
             Put(zip, name, content, CompressionLevel.Optimal);
         }
+        if (thesaurusVariants && thesaurusReplacements == 0)
+            throw new InvalidDataException("No supported thesaurus words were found in the EPUB's text. Turn off linguistic variations for this book.");
+    }
+
+    private static byte[] AppendCssFingerprint(byte[] original, string id)
+    {
+        string css;
+        try { css = new UTF8Encoding(false, true).GetString(original); }
+        catch (DecoderFallbackException ex) { throw new InvalidDataException("EPUB stylesheet fingerprinting requires UTF-8 CSS. Turn off this option or re-export the stylesheet as UTF-8.", ex); }
+        int nibble = Convert.ToInt32(id[^1].ToString(), 16);
+        // A very small, reader-specific spacing value is paired with a comment marker. CSS comments survive in many ordinary conversions; the tiny variation may be dropped by stylesheet optimization.
+        string microSpacing = (nibble / 10000m).ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture);
+        string marker = $"\n/* {CssMarker} {id} */\n@media screen {{ body {{ letter-spacing: {microSpacing}em !important; }} }}\n";
+        return new UTF8Encoding(false).GetBytes(css + marker);
     }
 
     private static byte[] AppendComment(byte[] original, string id)
@@ -237,14 +265,31 @@ public sealed class EpubBook
     private static void Put(ZipArchive zip, string name, byte[] bytes, CompressionLevel level)
     { using var target = zip.CreateEntry(name, level).Open(); target.Write(bytes); }
 
-    public IReadOnlyList<string> Fingerprints() => Xml(files[packagePath]).Root!.Element(Opf + "metadata")!.Elements(Dc + "identifier")
-        .Select(e => e.Value).Where(v => v.StartsWith("urn:arc-fingerprint:", StringComparison.Ordinal)).Select(v => v[20..]).ToList();
+    public IReadOnlyList<string> Fingerprints()
+    {
+        var ids = Xml(files[packagePath]).Root!.Element(Opf + "metadata")!.Elements(Dc + "identifier")
+            .Select(e => e.Value).Where(v => v.StartsWith("urn:arc-fingerprint:", StringComparison.Ordinal)).Select(v => v[20..]).ToList();
+        foreach (string path in xhtmlPaths)
+        {
+            var document = Xml(files[path]);
+            var comments = document.Nodes().OfType<XComment>().Concat(document.DescendantNodes().OfType<XComment>());
+            foreach (var comment in comments)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(comment.Value.Trim(), @"\A" + Marker + @"\s+(ARC-[0-9A-F]{32})\z", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (match.Success) ids.Add(match.Groups[1].Value.ToUpperInvariant());
+            }
+        }
+        foreach (var content in files.Where(pair => pair.Key.EndsWith(".css", StringComparison.OrdinalIgnoreCase)).Select(pair => Encoding.UTF8.GetString(pair.Value)))
+            foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(content, @"ARC-FINGERPRINT-CSS:\s*(ARC-[0-9A-F]{32})", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                ids.Add(match.Groups[1].Value.ToUpperInvariant());
+        return ids.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
 
-    internal void Verify(string id)
+    internal void Verify(string id, bool requireXhtmlFingerprint = true)
     {
         Require(Fingerprints().SequenceEqual(new[] { id }), "Output metadata fingerprint verification failed.");
-        foreach (var path in xhtmlPaths)
-            Require(Xml(files[path]).Nodes().OfType<XComment>().Any(c => c.Value.Trim() == Marker + " " + id), "Output XHTML fingerprint verification failed.");
+        if (requireXhtmlFingerprint)
+            foreach (var path in xhtmlPaths)
+                Require(Xml(files[path]).Nodes().OfType<XComment>().Any(c => c.Value.Trim() == Marker + " " + id), "Output XHTML fingerprint verification failed.");
     }
 }
-

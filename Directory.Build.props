@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
-    <Version>1.1.1</Version>
-    <AssemblyVersion>1.1.1.0</AssemblyVersion>
-    <FileVersion>1.1.1.0</FileVersion>
+    <Version>2.1.2</Version>
+    <AssemblyVersion>2.1.2.0</AssemblyVersion>
+    <FileVersion>2.1.2.0</FileVersion>
     <Product>ARC Fingerprint</Product>
-    <Description>Local EPUB ARC fingerprinting and private recipient lookup.</Description>
+    <Description>Local EPUB and PDF copy fingerprinting with private recipient lookup.</Description>
   </PropertyGroup>
 </Project>

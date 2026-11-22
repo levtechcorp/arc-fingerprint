@@ -26,4 +26,3 @@ foreach ($book in $books) {
 }
 Write-Host ('Reports: ' + $reportFolder)
 if ($failed) { exit 1 }
-

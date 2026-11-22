@@ -12,10 +12,18 @@ public static class BatchGenerator
 {
     public static BatchResult Generate(string master, IEnumerable<Recipient> recipients, string outputParent,
         IProgress<BatchProgress>? progress = null, CancellationToken cancellationToken = default,
-        EditionKind editionKind = EditionKind.Arc)
+        EditionKind editionKind = EditionKind.Arc, bool visiblePdfMark = false, EmailDraftOptions? emailDraft = null,
+        Func<IReadOnlyList<EmailDraftPreview>, bool>? previewEmailDrafts = null, bool pageLevelPdfFingerprints = false,
+        bool epubStylesheetFingerprint = false, bool pdfCoverMark = false, bool epubThesaurusVariants = false,
+        bool repeatXhtmlFingerprint = true)
     {
         if (!Enum.IsDefined(editionKind)) throw new ArgumentOutOfRangeException(nameof(editionKind));
+        if (Path.GetExtension(master).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+            return PdfBatchGenerator.Generate(master, recipients, outputParent, progress, cancellationToken, editionKind, visiblePdfMark, emailDraft, previewEmailDrafts, pageLevelPdfFingerprints, pdfCoverMark);
+        if (!Path.GetExtension(master).Equals(".epub", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Choose an EPUB or PDF master file.");
         var readers = Recipients.Validate(recipients);
+        emailDraft?.Validate();
         var book = EpubBook.Load(master);
         if (!Directory.Exists(outputParent)) throw new DirectoryNotFoundException("Choose an existing output folder.");
         var batchId = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..8];
@@ -25,19 +33,28 @@ public static class BatchGenerator
         Directory.CreateDirectory(staging);
         try
         {
-            var map = new StringBuilder("ArcId,Name,Email,FileName,EditionType,CopySha256,MasterSha256,CreatedUtc\r\n");
+            var batchEmailDraft = emailDraft is null ? null : EmailDraftSettingsStore.Save(staging, emailDraft);
+            var map = new StringBuilder("ArcId,Name,Email,FileName,EditionType,CopySha256,MasterSha256,CreatedUtc,Format\r\n");
             var ids = new HashSet<string>(StringComparer.Ordinal);
+            var emailPreviews = new List<EmailDraftPreview>();
             for (int i = 0; i < readers.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 string id;
                 do { id = "ARC-" + Convert.ToHexString(RandomNumberGenerator.GetBytes(16)); } while (!ids.Add(id));
-                string file = BuildFileName(book.Title, readers[i].Name, editionLabel, i + 1, id, staging);
+                string file = BuildFileName(book.Title, readers[i].Name, editionLabel, i + 1, id, staging, ".epub");
                 string copyPath = Path.Combine(staging, file);
-                book.WriteCopy(copyPath, id);
+                book.WriteCopy(copyPath, id, epubStylesheetFingerprint, epubThesaurusVariants, repeatXhtmlFingerprint);
                 var verified = EpubBook.Load(copyPath, true);
-                verified.Verify(id);
-                var fields = new[] { id, readers[i].Name, readers[i].Email, file, editionLabel, verified.SourceHash, book.SourceHash, DateTime.UtcNow.ToString("O") };
+                verified.Verify(id, repeatXhtmlFingerprint);
+                if (batchEmailDraft is not null)
+                {
+                    var emlPath = Path.ChangeExtension(copyPath, ".eml");
+                    EmailDraftGenerator.Write(emlPath, readers[i], book.Title, editionLabel, copyPath, batchEmailDraft);
+                    emailPreviews.Add(EmailDraftGenerator.Preview(readers[i], book.Title, editionLabel, copyPath, emlPath, batchEmailDraft));
+                }
+                RecipientPackageBuilder.Create(staging, i + 1, readers[i].Name, copyPath, batchEmailDraft is null ? null : Path.ChangeExtension(copyPath, ".eml"));
+                var fields = new[] { id, readers[i].Name, readers[i].Email, file, editionLabel, verified.SourceHash, book.SourceHash, DateTime.UtcNow.ToString("O"), "EPUB" };
                 map.AppendLine(string.Join(",", fields.Select(Recipients.CsvField)));
                 progress?.Report(new(i + 1, readers.Count));
             }
@@ -49,8 +66,17 @@ public static class BatchGenerator
                 XhtmlDocumentsPerCopy = book.DocumentCount, CompletedUtc = DateTime.UtcNow,
                 ObfuscatedFontsPreserved = book.ObfuscatedFontCount,
                 Validation = "Built-in structural and fingerprint checks passed for master and every copy. Not a full EPUBCheck conformance report.",
-                Fingerprint = "Additional dc:identifier plus XML comment in every manifest XHTML document. Original publication identifier preserved."
+                Fingerprint = new
+                {
+                    MetadataId = true,
+                    RepeatedXhtmlId = repeatXhtmlFingerprint,
+                    StylesheetSignal = epubStylesheetFingerprint,
+                    ThesaurusTextVariation = epubThesaurusVariants,
+                    Description = "Additional publication metadata ID with optional repeated XHTML, CSS, and text variation signals. Original publication identifier preserved."
+                }
             }, new JsonSerializerOptions { WriteIndented = true }));
+            if (batchEmailDraft is not null && previewEmailDrafts is not null && !previewEmailDrafts(emailPreviews))
+                throw new OperationCanceledException("Email draft review was cancelled.");
             Directory.Move(staging, finished);
             return new(finished, readers.Count);
         }
@@ -62,16 +88,16 @@ public static class BatchGenerator
         }
     }
 
-    private static string BuildFileName(string title, string recipient, string edition, int number, string id, string directory)
+    internal static string BuildFileName(string title, string recipient, string edition, int number, string id, string directory, string extension)
     {
         // Keep filenames readable while staying below common Windows path limits.
-        const string suffix = " - 000-XXXXXXXX.epub";
+        string suffix = " - 000-XXXXXXXX" + extension;
         int available = Math.Min(180, 245 - directory.Length - 1 - suffix.Length - edition.Length - 3);
         if (available < 24) throw new PathTooLongException("The selected output folder path is too long. Choose a folder closer to the drive root.");
         int each = Math.Max(12, available / 2);
         var safeTitle = SafePart(title, each);
         var safeRecipient = SafePart(recipient, each);
-        return $"{safeTitle} - {edition} - {safeRecipient} - {number:000}-{id[4..12]}.epub";
+        return $"{safeTitle} - {edition} - {safeRecipient} - {number:000}-{id[4..12]}{extension}";
     }
 
     private static string SafePart(string value, int maxLength)
